@@ -16,17 +16,19 @@ import mediapipe as mp
 import matplotlib.pyplot as plt
 import time
 from tqdm import tqdm
-
+import pickle
 
 # %%
 
 # Load weight model
-with open('svm_weights.json', 'r') as json_file:
-    weight_sit = json.load(json_file)
+# Tải lại mô hình SVM đã lưu
+pickle_file = r"D:\HocTap\HK2_Nam3\ML\Other\Final-machine-learning\svm_model_sit_stand_lie.pkl"
+with open(pickle_file, 'rb') as file:
+    loaded_svm_model = pickle.load(file)
 
 # Load weight model stand and lie
-with open('svm_weights_lie_stand.json', 'r') as json_file:
-    weights_lie_stand = json.load(json_file)
+# with open(r'D:\HocTap\HK2_Nam3\ML\Other\Final-machine-learning\svm_weights_lie_stand.json', 'r') as json_file:
+#     weights_lie_stand = json.load(json_file)
 
 # Initializing mediapipe pose class.
 mp_pose = mp.solutions.pose
@@ -69,17 +71,19 @@ def detectPose(image):
     feature =  xs + ys
     return feature, H, W
 
-def kernel(x, x_hat, weight):
-    return (weight['gamma'] * np.dot(x, x_hat) + weight['r']) ** weight['d']
+# def kernel(x, x_hat, weight):
+#     return (weight['gamma'] * np.dot(x, x_hat) + weight['r']) ** weight['d']
 
-def predict_svm(X, weight):
-    s = 0
-    for dual, sv in zip(weight['dual_coef'][0], weight['support_vectors']):
-        s += dual * kernel(sv, X, weight)
+# def predict_svm(X, weight):
+#     s = 0
+#     for dual, sv in zip(weight['dual_coef'][0], weight['support_vectors']):
+#         s += dual * kernel(sv, X, weight)
 
-    s += weight['bias']
-    return [int(s > 0)], s
+#     s += weight['bias']
+#     return [int(s > 0)], s
 
+def predict_svm(X):
+    return loaded_svm_model.predict(np.array(X).reshape(1, -1))
 
 # %%
 LABEL = ['SIT', 'STAND', 'LIE']
@@ -119,21 +123,21 @@ def procees_info_video():
                 
                 if len(feature) == 66:
                     # Predict of a image is 0 or 1. If 0 is sit and 1 (lie and stand)
-                    predictions, s= predict_svm(feature, weight_sit)
+                    predictions = predict_svm(feature)
                     predictions = predictions[0]
                     
-                    if predictions != 0:
-                        # Predict of a image is 0 or 1. If result is 0 then stand else lie with value 1
-                        predictions, s = predict_svm(feature, weights_lie_stand)
-                        predictions = predictions[0]
-                        if predictions == 0:
-                            predictions = 1
-                        else:
-                            predictions = 2
+                    # if predictions != 0:
+                    #     # Predict of a image is 0 or 1. If result is 0 then stand else lie with value 1
+                    #     predictions, s = predict_svm(feature, weights_lie_stand)
+                    #     predictions = predictions[0]
+                    #     if predictions == 0:
+                    #         predictions = 1
+                    #     else:
+                    #         predictions = 2
 
                 else:
                     predictions = 0
-                text = LABEL[predictions] + " " + str(s) + "predict: " + str(predictions)
+                text = LABEL[predictions] + " " + "predict: " + str(predictions)
 
                 id_length+=1
        
